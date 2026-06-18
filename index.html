@@ -87,7 +87,7 @@
   function color(v){if(v==null)return 'var(--mut)';if(v>=85)return 'var(--green)';if(v>=70)return 'var(--amber)';return 'var(--red)';}
   function secColor(n){n=(n||'').toLowerCase();if(n.indexOf('open')>=0)return '#22c55e';if(n.indexOf('process')>=0)return '#f59e0b';if(n.indexOf('clos')>=0)return '#3b82f6';if(n.indexOf('soft')>=0)return '#a855f7';return '#6d8bff';}
 
-  function extractScore(md){var m=md.match(/(\d{1,3})\s*\/\s*100/);if(m)return +m[1];m=md.match(/التقييم الكلي[^0-9]*(\d{1,3})\s*%/);if(m)return +m[1];m=md.match(/(\d{1,3})\s*%/);if(m)return +m[1];return null;}
+  function extractScore(md){var m=md.match(/الإجمالي[^0-9%]{0,25}(\d{1,3}(?:\.\d+)?)\s*%/);if(m)return parseFloat(m[1]);m=md.match(/(\d{1,3})\s*\/\s*100/);if(m)return +m[1];m=md.match(/التقييم الكلي[^0-9]*(\d{1,3}(?:\.\d+)?)\s*%/);if(m)return parseFloat(m[1]);return null;}
   function extractCsat(md){var m=md.match(/رضا العميل[^0-9]*(\d{1,3})\s*%/);return m?+m[1]:null;}
 
   function parseMetrics(md){
@@ -144,10 +144,11 @@
     if(out.Error||(env&&env.error)){runs[filename]={status:'error'};renderCompare();$('banner').className='banner err';$('banner').textContent='⚠️ '+filename+': '+(out.Error||env.error);$('kpis').innerHTML='';$('charts').style.display='none';$('sections').innerHTML='';$('reportCard').style.display='none';$('meta').innerHTML=metaRows(env,out);return;}
     var md=out.output||'';
     var score=extractScore(md),csat=extractCsat(md),m=parseMetrics(md);
+    if(score==null)score=m.overall;
     runs[filename]={status:'ok',score:score};renderCompare();
     $('banner').className='banner info';$('banner').textContent='✅ '+filename+' evaluated in '+(env.elapsedTime||'')+'.';
     var k='';
-    if(score!=null)k+='<div class="kpi"><div class="lab">Overall score</div><div class="ring" style="--p:'+score+';--rc:'+color(score)+'"><i style="color:'+color(score)+'">'+score+'%</i></div></div>';
+    if(score!=null)k+='<div class="kpi"><div class="lab">Overall score</div><div class="ring" style="--p:'+score+';--rc:'+color(score)+'"><i style="color:'+color(score)+'">'+Math.round(score)+'%</i></div></div>';
     if(m.overall!=null)k+=kpi('Weighted pass (computed)',m.overall+'%',color(m.overall));
     if(csat!=null)k+=kpi('Customer satisfaction',csat+'%',color(csat));
     k+=kpi('Criteria met',m.counts.Yes+' / '+(m.counts.Yes+m.counts.No),'var(--green)');
