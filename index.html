@@ -44,10 +44,10 @@
   .crit .dot{width:9px;height:9px;border-radius:50%;flex:none}
   .crit.ok .dot{background:var(--green)}.crit.bad .dot{background:var(--red)}.crit.na .dot{background:#64748b}
   .crit small{color:var(--mut);margin-inline-start:auto;white-space:nowrap}
-  .crit .lab{flex:1}
+  .crit .lab{flex:1;unicode-bidi:plaintext}
   details.card{margin-bottom:14px}summary{cursor:pointer;color:var(--mut);font-size:14px;padding:12px 0}
-  .report{line-height:1.7;overflow-x:auto}
-  .report table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13px}
+  .report{line-height:1.7;overflow-x:auto;direction:rtl;text-align:right}
+  .report table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13px;direction:rtl}
   .report th,.report td{border:1px solid var(--line);padding:8px 10px;text-align:start;vertical-align:top}
   .report th{background:var(--card2)}
   .report hr{border:0;border-top:1px solid var(--line);margin:16px 0}
@@ -77,7 +77,7 @@
     <div class="card"><h2>Section pass rate (weighted)</h2><div class="chartbox"><canvas id="bars"></canvas></div></div>
   </div>
   <div class="sections" id="sections"></div>
-  <details class="card" id="reportCard" style="display:none"><summary>📄 Full evaluation report</summary><div class="report" id="report" dir="auto"></div></details>
+  <details class="card" id="reportCard" style="display:none"><summary>📄 Full evaluation report</summary><div class="report" id="report" dir="rtl"></div></details>
   <div class="meta" id="meta"></div>
 </div>
 <script>
