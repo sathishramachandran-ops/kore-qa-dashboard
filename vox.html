@@ -105,12 +105,51 @@ function actionBtns(container, elements){
   });
 }
 
+// Parse the agent's markdown movie blocks (**Title** / ![..](poster) / meta) into cards
+function parseMovieCards(text){
+  var cards=[]; var re=/\*\*(.+?)\*\*[ \t]*\n+!\[[^\]]*\]\((https?:\/\/[^\s)]+)\)[ \t]*\n*([^\n]*)/g; var m;
+  while((m=re.exec(text))!==null){ cards.push({title:m[1].replace(/\*/g,'').trim(),image:m[2],subtitle:(m[3]||'').replace(/[,\s]+$/,'').trim()}); }
+  return {cards:cards, rest:cards.length?text.replace(re,'').trim():text};
+}
+function buildCarousel(cards){
+  var car=document.createElement('div');car.className='carousel';
+  cards.forEach(function(c){
+    var card=document.createElement('div');card.className='card';
+    if(c.image){var i=document.createElement('img');i.src=c.image;i.loading='lazy';i.onerror=function(){this.style.display='none';};card.appendChild(i);}
+    var bd=document.createElement('div');bd.className='cb';
+    bd.innerHTML='<div class="ct">'+esc(c.title)+'</div><div class="cs">'+esc(c.subtitle)+'</div>';
+    var bb=document.createElement('div');bb.className='cbtns';
+    var x=document.createElement('button');x.className='btn';x.textContent='🎟️ Showtimes';x.onclick=function(ev){ev.stopPropagation();send('Showtimes for '+c.title);};bb.appendChild(x);
+    bd.appendChild(bb);card.appendChild(bd);
+    card.style.cursor='pointer';
+    card.onclick=function(ev){ if(ev.target.tagName!=='BUTTON') send('Tell me about '+c.title); };
+    car.appendChild(card);
+  });
+  return car;
+}
+// Render assistant text: extract a movie carousel + turn trailing "- option" bullets into clickable chips
+function renderText(b, text){
+  var mv=parseMovieCards(text);
+  var body=mv.cards.length>=1?mv.rest:text;
+  var lines=body.split('\n'); var opts=[], keep=[];
+  lines.forEach(function(ln){
+    var t=ln.trim(); var mm=t.match(/^[-*•]\s+(.{2,70})$/);
+    if(mm && !/!\[/.test(t)){ opts.push(mm[1].replace(/\*\*/g,'').trim()); } else keep.push(ln);
+  });
+  var kt=keep.join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  if(kt) b.innerHTML+=md(kt);
+  if(mv.cards.length>=1) b.appendChild(buildCarousel(mv.cards));
+  if(opts.length){ var ch=document.createElement('div');ch.className='chips';
+    opts.forEach(function(o){var c=document.createElement('button');c.className='chip';c.textContent=o;c.onclick=function(){send(o.replace(/^[^A-Za-z0-9؀-ۿ]+/,'').trim()||o);};ch.appendChild(c);});
+    b.appendChild(ch);
+  }
+}
 function renderAssistant(turn){
   var b=botRow();
   var any=false;
-  if(turn.text && turn.text.trim()){ b.innerHTML+=md(turn.text); any=true; }
   var rc=turn.rc||{};
-  if(rc.markdown){ b.innerHTML+=md(rc.markdown); any=true; }
+  var textContent=(turn.text&&turn.text.trim())?turn.text:(rc.markdown||'');
+  if(textContent.trim()){ renderText(b, textContent); any=true; }
   if(rc.html){ b.innerHTML+=rc.html; any=true; }
   if(rc.image && (rc.image.url||rc.image.image_url)){ var im=document.createElement('img');im.src=rc.image.url||rc.image.image_url;b.appendChild(im);any=true; }
   if(rc.carousel && rc.carousel.cards){
