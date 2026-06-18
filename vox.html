@@ -156,13 +156,19 @@ async function init(){
   }catch(e){$('dot').style.background='#ef4444';addError('Init failed: '+e);return false;}
 }
 
+async function chatCall(text){
+  var body={token:token,message:text}; if(sessionId)body.sessionId=sessionId;
+  return await fetch(CFG.base+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+}
 async function send(text){
   if(!text)return; addUser(text); $('inp').value='';
-  if(!token){ if(!await init()) return; }
+  if(!token){ if(!await init()) return; }   // first message of a fresh load
   showTyping();
   try{
-    var body={token:token,message:text}; if(sessionId)body.sessionId=sessionId;
-    var r=await fetch(CFG.base+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    var r=await chatCall(text);
+    if(r.status===401){ // SDK token expired (>4h) — re-init once and retry, preserving the conversation sessionId
+      if(await init()){ r=await chatCall(text); }
+    }
     var j=await r.json(); hideTyping();
     if(!r.ok){ addError((j&&j.error)||('HTTP '+r.status)); return; }
     sessionId=j.sessionId||j.session_id||(j.data&&j.data.sessionId)||sessionId;
