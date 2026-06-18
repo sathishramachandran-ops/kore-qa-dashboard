@@ -179,17 +179,14 @@ async function send(text){
 $('snd').onclick=function(){send($('inp').value.trim());};
 $('inp').addEventListener('keydown',function(e){if(e.key==='Enter')send($('inp').value.trim());});
 
-(async function(){
-  var ok=await init();
-  if(ok){ // kick off the agent's welcome / ON_START
-    showTyping();
-    try{
-      var r=await fetch(CFG.base+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:token,message:'Hi'})});
-      var j=await r.json(); hideTyping();
-      if(r.ok){ sessionId=j.sessionId||j.session_id||(j.data&&j.data.sessionId)||sessionId; extractTurns(j).forEach(renderAssistant); }
-      else { renderAssistant({text:"Welcome to **VOX Cinemas**! 🎬 Tell me what you feel like watching, or share your number to personalize.",ac:{elements:[{id:'a1',type:'button',label:'✨ Recommend for me',value:'recommend a movie for me'},{id:'a2',type:'button',label:'🔍 Browse movies',value:'what movies are showing'}]}}); }
-    }catch(e){ hideTyping(); }
-  }
+(function(){
+  init(); // warm up the SDK token in the background (once per page load)
+  renderAssistant({text:"Welcome to **VOX Cinemas**! 🎬 What are you in the mood for? Tap an option or share your mobile/email to personalize.",ac:{elements:[
+    {id:'a1',type:'button',label:'✨ Recommend for me',value:'recommend movies for me'},
+    {id:'a2',type:'button',label:'🎬 Action movies',value:'show me action movies'},
+    {id:'a3',type:'button',label:'🌍 Arabic films',value:'show me Arabic films'},
+    {id:'a4',type:'button',label:'🍿 Food & drinks',value:'show me food and drinks'}
+  ]}});
 })();
 </script>
 </body>
