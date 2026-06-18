@@ -133,7 +133,7 @@ function renderText(b, text){
   var body=mv.cards.length>=1?mv.rest:text;
   var lines=body.split('\n'); var opts=[], keep=[];
   lines.forEach(function(ln){
-    var t=ln.trim(); var mm=t.match(/^[-*•]\s+(.{2,70})$/);
+    var t=ln.trim(); var mm=t.match(/^(?:[-*•]|\d+[.)])\s+(.{2,90})$/);
     if(mm && !/!\[/.test(t)){ opts.push(mm[1].replace(/\*\*/g,'').trim()); } else keep.push(ln);
   });
   var kt=keep.join('\n').replace(/\n{3,}/g,'\n\n').trim();
