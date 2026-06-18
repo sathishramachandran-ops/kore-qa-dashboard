@@ -64,7 +64,7 @@
   </div>
 </div>
 <script>
-const CFG={base:'https://agents.kore.ai/api/v1',pk:'pk_689aabbc27fb3242982350b834541e9ae788fc661443fa83',channelId:'019eda28-012b-7615-97c2-f998acb9b173',projectId:'019ed9d3-e51b-7580-a1c0-ddb760b91a74'};
+const CFG={base:'https://obagcessyqdsbihnmeav.supabase.co/functions/v1/vox-chat'};
 let token=null,sessionId=null;
 const $=id=>document.getElementById(id);
 const msgs=$('msgs');
@@ -149,11 +149,11 @@ function extractTurns(j){
 
 async function init(){
   try{
-    var r=await fetch(CFG.base+'/sdk/init',{method:'POST',headers:{'X-Public-Key':CFG.pk,'Content-Type':'application/json'},body:JSON.stringify({channelId:CFG.channelId})});
+    var r=await fetch(CFG.base+'/init',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
     var j=await r.json(); token=j.token||j.sdkToken||(j.data&&j.data.token);
     if(!token){$('dot').style.background='#f59e0b';addError('Could not initialize session: '+(j.error||('HTTP '+r.status)));return false;}
     return true;
-  }catch(e){$('dot').style.background='#ef4444';addError('Init failed: '+e+' (origin must be allow-listed on the channel).');return false;}
+  }catch(e){$('dot').style.background='#ef4444';addError('Init failed: '+e);return false;}
 }
 
 async function send(text){
@@ -161,8 +161,8 @@ async function send(text){
   if(!token){ if(!await init()) return; }
   showTyping();
   try{
-    var body={projectId:CFG.projectId,message:text}; if(sessionId)body.sessionId=sessionId;
-    var r=await fetch(CFG.base+'/chat/agent',{method:'POST',headers:{'X-SDK-Token':token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    var body={token:token,message:text}; if(sessionId)body.sessionId=sessionId;
+    var r=await fetch(CFG.base+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     var j=await r.json(); hideTyping();
     if(!r.ok){ addError((j&&j.error)||('HTTP '+r.status)); return; }
     sessionId=j.sessionId||j.session_id||(j.data&&j.data.sessionId)||sessionId;
@@ -178,7 +178,7 @@ $('inp').addEventListener('keydown',function(e){if(e.key==='Enter')send($('inp')
   if(ok){ // kick off the agent's welcome / ON_START
     showTyping();
     try{
-      var r=await fetch(CFG.base+'/chat/agent',{method:'POST',headers:{'X-SDK-Token':token,'Content-Type':'application/json'},body:JSON.stringify({projectId:CFG.projectId,message:'Hi'})});
+      var r=await fetch(CFG.base+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:token,message:'Hi'})});
       var j=await r.json(); hideTyping();
       if(r.ok){ sessionId=j.sessionId||j.session_id||(j.data&&j.data.sessionId)||sessionId; extractTurns(j).forEach(renderAssistant); }
       else { renderAssistant({text:"Welcome to **VOX Cinemas**! 🎬 Tell me what you feel like watching, or share your number to personalize.",ac:{elements:[{id:'a1',type:'button',label:'✨ Recommend for me',value:'recommend a movie for me'},{id:'a2',type:'button',label:'🔍 Browse movies',value:'what movies are showing'}]}}); }
