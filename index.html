@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Call QA Evaluation Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  :root{--bg:#0b1020;--card:#151b2e;--card2:#1b2236;--line:#2a3350;--txt:#e6e9f2;--mut:#8b93ad;--accent:#6d8bff;--green:#22c55e;--amber:#f59e0b;--red:#ef4444;--blue:#3b82f6;--purple:#a855f7;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:radial-gradient(1200px 600px at 70% -10%,#1a2a55 0,transparent 60%),var(--bg);color:var(--txt);}
+  header{padding:22px 28px;background:linear-gradient(120deg,#1b2a4a,#131a30);border-bottom:1px solid var(--line);}
+  h1{margin:0;font-size:20px}.sub{color:var(--mut);font-size:13px;margin-top:4px}
+  .wrap{max-width:1120px;margin:0 auto;padding:22px 20px 70px}
+  .controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:18px}
+  select,button{font-size:15px;border-radius:10px;border:1px solid var(--line);padding:11px 14px;background:var(--card2);color:var(--txt)}
+  button{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;cursor:pointer}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .timer{color:var(--mut);font-size:13px}
+  .compare{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .chip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 13px;font-size:13px;color:var(--mut)}
+  .banner{border-radius:12px;padding:13px 16px;margin-bottom:16px;font-size:14px;display:none}
+  .banner.info{display:block;background:#15233f;border:1px solid #29406e;color:#cfe0ff}
+  .banner.err{display:block;background:#3a1620;border:1px solid #6e2937;color:#ffd2dc}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:18px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .kpi .lab{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+  .kpi .val{font-size:28px;font-weight:700;margin-top:8px}
+  .ring{--p:0;width:84px;height:84px;border-radius:50%;background:conic-gradient(var(--rc) calc(var(--p)*1%),#2a3350 0);display:flex;align-items:center;justify-content:center;margin-top:6px}
+  .ring i{width:64px;height:64px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:700;font-size:19px}
+  .charts{display:grid;grid-template-columns:1fr 1.4fr;gap:14px;margin-bottom:18px}
+  @media(max-width:760px){.charts{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:8px 18px 18px}
+  .card h2{font-size:14px;color:var(--mut);font-weight:600;border-bottom:1px solid var(--line);padding:14px 0 12px;margin:0 0 12px}
+  .chartbox{position:relative;height:260px}
+  .sections{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:18px}
+  .sec{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;border-top:4px solid var(--sc,var(--accent))}
+  .sec .top{display:flex;justify-content:space-between;align-items:baseline}
+  .sec .nm{font-weight:700}.sec .wt{color:var(--mut);font-size:12px}
+  .bar{height:8px;border-radius:6px;background:#2a3350;margin:10px 0 12px;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--sc,var(--accent))}
+  .crit{display:flex;align-items:center;gap:8px;font-size:13px;padding:5px 0;line-height:1.4}
+  .crit .dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .crit.ok .dot{background:var(--green)}.crit.bad .dot{background:var(--red)}.crit.na .dot{background:#64748b}
+  .crit small{color:var(--mut);margin-inline-start:auto;white-space:nowrap}
+  .crit .lab{flex:1}
+  details.card{margin-bottom:14px}summary{cursor:pointer;color:var(--mut);font-size:14px;padding:12px 0}
+  .report{line-height:1.7;overflow-x:auto}
+  .report table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13px}
+  .report th,.report td{border:1px solid var(--line);padding:8px 10px;text-align:start;vertical-align:top}
+  .report th{background:var(--card2)}
+  .report hr{border:0;border-top:1px solid var(--line);margin:16px 0}
+  .meta{color:var(--mut);font-size:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+  .meta code{color:#aab4d4;word-break:break-all}
+  .spin{display:inline-block;width:15px;height:15px;border:2px solid #fff5;border-top-color:#fff;border-radius:50%;animation:s 1s linear infinite;vertical-align:-2px;margin-right:7px}
+  @keyframes s{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>📊 Call QA Evaluation Dashboard</h1>
+  <div class="sub">Pick a recording, run the Kore Quality-AI evaluation, and see the scored criteria as live charts.</div>
+</header>
+<div class="wrap">
+  <div class="controls">
+    <label for="file" style="color:var(--mut);font-size:14px">Recording</label>
+    <select id="file"><option value="file1">file1</option><option value="file2">file2</option></select>
+    <button id="run">Run evaluation</button>
+    <span class="timer" id="timer"></span>
+  </div>
+  <div class="compare" id="compare"></div>
+  <div class="banner" id="banner"></div>
+  <div class="kpis" id="kpis"></div>
+  <div class="charts" id="charts" style="display:none">
+    <div class="card"><h2>Results distribution</h2><div class="chartbox"><canvas id="donut"></canvas></div></div>
+    <div class="card"><h2>Section pass rate (weighted)</h2><div class="chartbox"><canvas id="bars"></canvas></div></div>
+  </div>
+  <div class="sections" id="sections"></div>
+  <details class="card" id="reportCard" style="display:none"><summary>📄 Full evaluation report</summary><div class="report" id="report" dir="auto"></div></details>
+  <div class="meta" id="meta"></div>
+</div>
+<script>
+  var runs={}, donutChart=null, barChart=null;
+  function $(id){return document.getElementById(id);}
+  function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML;}
+  function color(v){if(v==null)return 'var(--mut)';if(v>=85)return 'var(--green)';if(v>=70)return 'var(--amber)';return 'var(--red)';}
+  function secColor(n){n=(n||'').toLowerCase();if(n.indexOf('open')>=0)return '#22c55e';if(n.indexOf('process')>=0)return '#f59e0b';if(n.indexOf('clos')>=0)return '#3b82f6';if(n.indexOf('soft')>=0)return '#a855f7';return '#6d8bff';}
+
+  function extractScore(md){var m=md.match(/(\d{1,3})\s*\/\s*100/);if(m)return +m[1];m=md.match(/التقييم الكلي[^0-9]*(\d{1,3})\s*%/);if(m)return +m[1];m=md.match(/(\d{1,3})\s*%/);if(m)return +m[1];return null;}
+  function extractCsat(md){var m=md.match(/رضا العميل[^0-9]*(\d{1,3})\s*%/);return m?+m[1]:null;}
+
+  function parseMetrics(md){
+    var lines=md.split('\n'), crit=[], cur=null, order=[], secW={};
+    for(var i=0;i<lines.length;i++){
+      var ln=lines[i]; if(ln.indexOf('|')<0)continue;
+      var s=ln.trim().replace(/^\|/,'').replace(/\|$/,'');
+      var cells=s.split('|'); if(cells.length<4)continue;
+      for(var j=0;j<cells.length;j++)cells[j]=cells[j].trim();
+      var c1=cells[0], c2=cells[1], res=cells[2].replace(/\*/g,'').trim(), lab=cells[3];
+      if(/^-+$/.test(c1.replace(/\s/g,'')))continue;
+      var isRes=/^(Yes|No|N\/A)$/i.test(res)||/^(نعم|لا)$/.test(res);
+      if(!isRes)continue;
+      if(c1){var name=c1.split(/–|-/)[0].replace(/[^A-Za-z ]/g,'').trim();var w=(c1.match(/(\d{1,3})\s*%/)||[])[1];cur=name||c1;secW[cur]=w?+w:null;if(order.indexOf(cur)<0)order.push(cur);}
+      var cw=(c2.match(/(\d{1,3})\s*%/)||[])[1];
+      var rn=/yes|نعم/i.test(res)?'Yes':(/no|لا/i.test(res)?'No':'N/A');
+      crit.push({section:cur||'Other',weight:cw?+cw:0,result:rn,label:lab});
+    }
+    var map={},counts={Yes:0,No:0,'N/A':0};
+    crit.forEach(function(c){
+      counts[c.result]++;
+      if(!map[c.section])map[c.section]={name:c.section,weight:secW[c.section]||null,items:[],wYes:0,wTot:0};
+      var S=map[c.section];S.items.push(c);
+      if(c.result==='Yes'){S.wYes+=c.weight;S.wTot+=c.weight;}else if(c.result==='No'){S.wTot+=c.weight;}
+    });
+    var sections=order.map(function(n){var S=map[n];if(!S)return null;S.rate=S.wTot?Math.round(S.wYes/S.wTot*100):null;return S;}).filter(Boolean);
+    var ow=0,wt=0;sections.forEach(function(S){if(S.weight!=null&&S.rate!=null){ow+=S.weight*S.rate/100;wt+=S.weight;}});
+    return {crit:crit,sections:sections,counts:counts,overall:wt?Math.round(ow):null};
+  }
+
+  function renderCompare(){var c=$('compare');c.innerHTML='';['file1','file2'].forEach(function(f){var r=runs[f];if(!r)return;var lab=r.status==='error'?'<b style="color:var(--red)">error</b>':('<b style="color:'+color(r.score)+'">'+(r.score!=null?r.score+'%':'done')+'</b>');c.innerHTML+='<span class="chip">'+f+': '+lab+'</span>';});}
+  function kpi(l,v,c){return '<div class="kpi"><div class="lab">'+l+'</div><div class="val" style="color:'+(c||'var(--txt)')+'">'+v+'</div></div>';}
+
+  function drawCharts(m){
+    $('charts').style.display='grid';
+    if(donutChart)donutChart.destroy();if(barChart)barChart.destroy();
+    Chart.defaults.color='#8b93ad';Chart.defaults.borderColor='#2a3350';
+    donutChart=new Chart($('donut'),{type:'doughnut',data:{labels:['Yes','No','N/A'],datasets:[{data:[m.counts.Yes,m.counts.No,m.counts['N/A']],backgroundColor:['#22c55e','#ef4444','#64748b'],borderColor:'#151b2e',borderWidth:2}]},options:{plugins:{legend:{position:'bottom'}},cutout:'62%'}});
+    barChart=new Chart($('bars'),{type:'bar',data:{labels:m.sections.map(function(s){return s.name;}),datasets:[{label:'Pass rate %',data:m.sections.map(function(s){return s.rate;}),backgroundColor:m.sections.map(function(s){return secColor(s.name);}),borderRadius:6}]},options:{plugins:{legend:{display:false}},scales:{y:{min:0,max:100,ticks:{callback:function(v){return v+'%';}}}}}});
+  }
+  function drawSections(m){
+    var h='';m.sections.forEach(function(S){var col=secColor(S.name);
+      h+='<div class="sec" style="--sc:'+col+'"><div class="top"><span class="nm">'+esc(S.name)+'</span><span class="wt">'+(S.weight!=null?'weight '+S.weight+'%':'')+(S.rate!=null?' · '+S.rate+'% pass':'')+'</span></div>';
+      h+='<div class="bar"><i style="width:'+(S.rate||0)+'%"></i></div>';
+      S.items.forEach(function(c){var cls=c.result==='Yes'?'ok':c.result==='No'?'bad':'na';h+='<div class="crit '+cls+'"><span class="dot"></span><span class="lab">'+esc(c.label)+'</span><small>'+(c.weight?c.weight+'%':'')+' · '+c.result+'</small></div>';});
+      h+='</div>';});
+    $('sections').innerHTML=h;
+  }
+
+  function metaRows(env,out){function row(l,v){return v?('<div>'+l+': <code>'+esc(v)+'</code></div>'):'';}return row('Version',out.cfVersionName)+row('Process ID',out.processId)+row('Trace ID',out.traceId)+row('Input tokens',out.inputTokens)+row('Output tokens',out.outputTokens)+row('Start',env.startTime)+row('End',env.endTime);}
+
+  function render(filename,env){
+    var out=(env&&env.output)||{};
+    if(out.Error||(env&&env.error)){runs[filename]={status:'error'};renderCompare();$('banner').className='banner err';$('banner').textContent='⚠️ '+filename+': '+(out.Error||env.error);$('kpis').innerHTML='';$('charts').style.display='none';$('sections').innerHTML='';$('reportCard').style.display='none';$('meta').innerHTML=metaRows(env,out);return;}
+    var md=out.output||'';
+    var score=extractScore(md),csat=extractCsat(md),m=parseMetrics(md);
+    runs[filename]={status:'ok',score:score};renderCompare();
+    $('banner').className='banner info';$('banner').textContent='✅ '+filename+' evaluated in '+(env.elapsedTime||'')+'.';
+    var k='';
+    if(score!=null)k+='<div class="kpi"><div class="lab">Overall score</div><div class="ring" style="--p:'+score+';--rc:'+color(score)+'"><i style="color:'+color(score)+'">'+score+'%</i></div></div>';
+    if(m.overall!=null)k+=kpi('Weighted pass (computed)',m.overall+'%',color(m.overall));
+    if(csat!=null)k+=kpi('Customer satisfaction',csat+'%',color(csat));
+    k+=kpi('Criteria met',m.counts.Yes+' / '+(m.counts.Yes+m.counts.No),'var(--green)');
+    k+=kpi('Total tokens',out.totalTokens!=null?out.totalTokens:'—');
+    k+=kpi('Elapsed',env.elapsedTime||'—');
+    $('kpis').innerHTML=k;
+    if(m.sections.length){drawCharts(m);drawSections(m);}else{$('charts').style.display='none';$('sections').innerHTML='';}
+    $('report').innerHTML=md?marked.parse(md):'';$('reportCard').style.display='block';
+    $('meta').innerHTML=metaRows(env,out);
+  }
+
+  var t0=0,timer=null;
+  function tick(){$('timer').textContent='running… '+((Date.now()-t0)/1000).toFixed(0)+'s (can take up to ~90s)';}
+  async function run(){
+    var filename=$('file').value;$('run').disabled=true;
+    $('banner').className='banner info';$('banner').innerHTML='<span class="spin"></span>Evaluating '+filename+'…';
+    $('kpis').innerHTML='';$('charts').style.display='none';$('sections').innerHTML='';$('reportCard').style.display='none';$('meta').innerHTML='';
+    t0=Date.now();timer=setInterval(tick,1000);tick();
+    try{var res=await fetch('https://obagcessyqdsbihnmeav.supabase.co/functions/v1/qa-dashboard',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({filename:filename})});var env=await res.json();render(filename,env);}
+    catch(e){$('banner').className='banner err';$('banner').textContent='Request failed: '+e;}
+    finally{clearInterval(timer);$('timer').textContent='';$('run').disabled=false;}
+  }
+  $('run').addEventListener('click',run);
+  $('file').addEventListener('change',run);
+</script>
+</body>
+</html>
