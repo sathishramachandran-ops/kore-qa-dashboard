@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VOX Cinemas — AI Booking Assistant</title>
+<style>
+  :root{--red:#e10915;--bg:#0c0d12;--panel:#15171f;--panel2:#1d212c;--line:#2a2f3d;--txt:#f2f3f7;--mut:#9aa1b2;--bot:#1b1f2a;--user:#e10915;}
+  *{box-sizing:border-box}
+  body{margin:0;height:100vh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:radial-gradient(900px 500px at 80% -10%,#2a0d12 0,transparent 55%),var(--bg);color:var(--txt);display:flex;align-items:center;justify-content:center}
+  .widget{width:min(440px,100%);height:min(760px,100vh);background:var(--panel);border:1px solid var(--line);border-radius:18px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+  .hd{background:linear-gradient(120deg,#1a1d27,#10121a);border-bottom:1px solid var(--line);padding:16px 18px;display:flex;align-items:center;gap:12px}
+  .hd .logo{background:var(--red);color:#fff;font-weight:800;letter-spacing:1px;padding:6px 10px;border-radius:8px;font-size:14px}
+  .hd .t{font-weight:700;font-size:16px}.hd .s{color:var(--mut);font-size:12px}
+  .hd .dot{width:8px;height:8px;border-radius:50%;background:#34d399;margin-inline-start:auto;box-shadow:0 0 8px #34d399}
+  .msgs{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:14px}
+  .row{display:flex;gap:8px;max-width:100%}
+  .row.user{justify-content:flex-end}
+  .bubble{padding:11px 14px;border-radius:16px;font-size:14.5px;line-height:1.55;max-width:85%;word-wrap:break-word}
+  .bubble.bot{background:var(--bot);border:1px solid var(--line);border-top-left-radius:5px}
+  .bubble.user{background:var(--user);color:#fff;border-top-right-radius:5px}
+  .bubble.err{background:#3a1620;border:1px solid #6e2937;color:#ffd2dc;font-size:13px}
+  .bubble h1,.bubble h2,.bubble h3{margin:.3em 0;font-size:1.05em}
+  .bubble img{max-width:100%;border-radius:10px}
+  .bubble a{color:#7fb0ff}
+  .bubble table{border-collapse:collapse;width:100%;font-size:12.5px;margin:6px 0}
+  .bubble th,.bubble td{border:1px solid var(--line);padding:5px 7px;text-align:start}
+  /* carousel */
+  .carousel{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 8px;scroll-snap-type:x mandatory}
+  .carousel::-webkit-scrollbar{height:6px}.carousel::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px}
+  .card{flex:0 0 200px;scroll-snap-align:start;background:var(--panel2);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+  .card img{width:100%;height:270px;object-fit:cover;background:#000}
+  .card .cb{padding:10px 12px;display:flex;flex-direction:column;gap:5px;flex:1}
+  .card .ct{font-weight:700;font-size:14px;line-height:1.3}
+  .card .cs{color:var(--mut);font-size:12px;line-height:1.4;flex:1}
+  .card .cbtns{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+  /* chips / buttons */
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+  .chip{background:transparent;border:1px solid var(--red);color:#ff8a91;border-radius:999px;padding:8px 14px;font-size:13px;cursor:pointer;transition:.15s}
+  .chip:hover{background:var(--red);color:#fff}
+  .btn{background:var(--red);border:none;color:#fff;border-radius:9px;padding:9px 12px;font-size:13px;font-weight:600;cursor:pointer;text-align:center}
+  .btn.sec{background:var(--panel);border:1px solid var(--line);color:var(--txt)}
+  .btn:hover{filter:brightness(1.1)}
+  select,.tin{width:100%;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:9px;font-size:13px}
+  .typing{display:flex;gap:4px;padding:12px 14px}
+  .typing i{width:7px;height:7px;border-radius:50%;background:var(--mut);animation:b 1.2s infinite}
+  .typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}
+  @keyframes b{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
+  .composer{border-top:1px solid var(--line);padding:12px;display:flex;gap:8px;background:var(--panel)}
+  .composer input{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:12px;padding:12px 14px;font-size:14px;outline:none}
+  .composer button{background:var(--red);border:none;color:#fff;width:46px;border-radius:12px;font-size:18px;cursor:pointer}
+  .banner{margin:0 18px 0;padding:8px 12px;border-radius:10px;font-size:12px;display:none}
+  .banner.warn{display:block;background:#3a2a10;border:1px solid #6e5320;color:#ffe2b0}
+</style>
+</head>
+<body>
+<div class="widget">
+  <div class="hd"><span class="logo">VOX</span><div><div class="t">VOX Cinemas Assistant</div><div class="s">Movies • Showtimes • Seats • Snacks</div></div><span class="dot" id="dot"></span></div>
+  <div class="banner warn" id="banner"></div>
+  <div class="msgs" id="msgs"></div>
+  <div class="composer">
+    <input id="inp" placeholder="Ask for a movie, showtimes, seats…" autocomplete="off" />
+    <button id="snd">➤</button>
+  </div>
+</div>
+<script>
+const CFG={base:'https://agents.kore.ai/api/v1',pk:'pk_689aabbc27fb3242982350b834541e9ae788fc661443fa83',channelId:'019eda28-012b-7615-97c2-f998acb9b173',projectId:'019ed9d3-e51b-7580-a1c0-ddb760b91a74'};
+let token=null,sessionId=null;
+const $=id=>document.getElementById(id);
+const msgs=$('msgs');
+
+function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML;}
+function md(s){ // minimal markdown
+  s=esc(s);
+  s=s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g,'<img alt="$1" src="$2"/>');
+  s=s.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+  s=s.replace(/^###\s?(.*)$/gm,'<h3>$1</h3>').replace(/^##\s?(.*)$/gm,'<h2>$1</h2>').replace(/^#\s?(.*)$/gm,'<h1>$1</h1>');
+  s=s.replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>').replace(/\*([^*]+)\*/g,'<i>$1</i>').replace(/`([^`]+)`/g,'<code>$1</code>');
+  s=s.replace(/\n/g,'<br/>');
+  return s;
+}
+function scroll(){msgs.scrollTop=msgs.scrollHeight;}
+function addUser(t){var r=document.createElement('div');r.className='row user';r.innerHTML='<div class="bubble user">'+esc(t)+'</div>';msgs.appendChild(r);scroll();}
+function botRow(){var r=document.createElement('div');r.className='row bot';var b=document.createElement('div');b.className='bubble bot';r.appendChild(b);msgs.appendChild(r);return b;}
+function addError(t){var b=botRow();b.className='bubble err';b.textContent='⚠️ '+t;scroll();}
+let typingEl=null;
+function showTyping(){typingEl=document.createElement('div');typingEl.className='row bot';typingEl.innerHTML='<div class="bubble bot"><div class="typing"><i></i><i></i><i></i></div></div>';msgs.appendChild(typingEl);scroll();}
+function hideTyping(){if(typingEl){typingEl.remove();typingEl=null;}}
+
+function actionBtns(container, elements){
+  elements.forEach(function(el){
+    if(el.type==='select'){
+      var sel=document.createElement('select');
+      (el.options||[]).forEach(function(o){var op=document.createElement('option');op.value=o.id||o.label;op.textContent=o.label+(o.description?' — '+o.description:'');sel.appendChild(op);});
+      var go=document.createElement('button');go.className='btn';go.textContent=el.label||'Select';go.onclick=function(){send(sel.value);};
+      container.appendChild(sel);container.appendChild(go);
+    } else if(el.type==='input'){
+      var inp=document.createElement('input');inp.className='tin';inp.placeholder=el.placeholder||el.label||'';
+      var go2=document.createElement('button');go2.className='btn';go2.textContent='Submit';go2.onclick=function(){if(inp.value)send(inp.value);};
+      container.appendChild(inp);container.appendChild(go2);
+    } else {
+      var b=document.createElement('button');b.className='btn';b.textContent=el.label;b.onclick=function(){send(el.value||el.label);};
+      container.appendChild(b);
+    }
+  });
+}
+
+function renderAssistant(turn){
+  var b=botRow();
+  var any=false;
+  if(turn.text && turn.text.trim()){ b.innerHTML+=md(turn.text); any=true; }
+  var rc=turn.rc||{};
+  if(rc.markdown){ b.innerHTML+=md(rc.markdown); any=true; }
+  if(rc.html){ b.innerHTML+=rc.html; any=true; }
+  if(rc.image && (rc.image.url||rc.image.image_url)){ var im=document.createElement('img');im.src=rc.image.url||rc.image.image_url;b.appendChild(im);any=true; }
+  if(rc.carousel && rc.carousel.cards){
+    var car=document.createElement('div');car.className='carousel';
+    rc.carousel.cards.forEach(function(c){
+      var card=document.createElement('div');card.className='card';
+      var img=c.image_url||c.imageUrl; if(img){var i=document.createElement('img');i.src=img;i.loading='lazy';i.onerror=function(){this.style.display='none';};card.appendChild(i);}
+      var body=document.createElement('div');body.className='cb';
+      body.innerHTML='<div class="ct">'+esc(c.title||'')+'</div><div class="cs">'+esc(c.subtitle||'')+'</div>';
+      var bb=document.createElement('div');bb.className='cbtns';
+      (c.buttons||[]).forEach(function(bt){var x=document.createElement('button');x.className='btn';x.textContent=bt.label;x.onclick=function(){send(bt.value||bt.label);};bb.appendChild(x);});
+      if(c.default_action_url){var a=document.createElement('a');a.className='btn sec';a.textContent='View';a.href=c.default_action_url;a.target='_blank';bb.appendChild(a);}
+      body.appendChild(bb);card.appendChild(body);car.appendChild(card);
+    });
+    b.appendChild(car);any=true;
+  }
+  if(turn.ac && turn.ac.elements && turn.ac.elements.length){ var ab=document.createElement('div');ab.className='chips';actionBtns(ab,turn.ac.elements);b.appendChild(ab);any=true; }
+  if(rc.quick_replies && rc.quick_replies.length){
+    var qr=document.createElement('div');qr.className='chips';
+    rc.quick_replies.forEach(function(q){var c=document.createElement('button');c.className='chip';c.textContent=(q.icon_url?'':'')+q.label;c.onclick=function(){send(q.label);};qr.appendChild(c);});
+    b.appendChild(qr);any=true;
+  }
+  if(!any) b.innerHTML=md(turn.text||'…');
+  scroll();
+}
+
+function extractTurns(j){
+  var turns=[];
+  function pull(o){ if(!o||typeof o!=='object')return; var text=o.text||o.fullText||o.content||o.message||o.response; var rc=o.richContent||o.rich_content; var ac=o.actions; if((typeof text==='string'&&text.trim())||rc||ac) turns.push({text:typeof text==='string'?text:'',rc:rc,ac:ac}); }
+  pull(j); pull(j.data); pull(j.message); if(j.data)pull(j.data.message);
+  ((j.messages)||(j.data&&j.data.messages)||[]).forEach(pull);
+  (j.events||[]).forEach(function(e){ if(e&&/response_end|message|response/.test(e.type||'')) pull(e); });
+  if(!turns.length){ var t=(j&&(j.text||j.message||j.error)); turns.push({text: typeof t==='string'? t : JSON.stringify(j).slice(0,400)}); }
+  return turns;
+}
+
+async function init(){
+  try{
+    var r=await fetch(CFG.base+'/sdk/init',{method:'POST',headers:{'X-Public-Key':CFG.pk,'Content-Type':'application/json'},body:JSON.stringify({channelId:CFG.channelId})});
+    var j=await r.json(); token=j.token||j.sdkToken||(j.data&&j.data.token);
+    if(!token){$('dot').style.background='#f59e0b';addError('Could not initialize session: '+(j.error||('HTTP '+r.status)));return false;}
+    return true;
+  }catch(e){$('dot').style.background='#ef4444';addError('Init failed: '+e+' (origin must be allow-listed on the channel).');return false;}
+}
+
+async function send(text){
+  if(!text)return; addUser(text); $('inp').value='';
+  if(!token){ if(!await init()) return; }
+  showTyping();
+  try{
+    var body={projectId:CFG.projectId,message:text}; if(sessionId)body.sessionId=sessionId;
+    var r=await fetch(CFG.base+'/chat/agent',{method:'POST',headers:{'X-SDK-Token':token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    var j=await r.json(); hideTyping();
+    if(!r.ok){ addError((j&&j.error)||('HTTP '+r.status)); return; }
+    sessionId=j.sessionId||j.session_id||(j.data&&j.data.sessionId)||sessionId;
+    extractTurns(j).forEach(renderAssistant);
+  }catch(e){ hideTyping(); addError('Request failed: '+e); }
+}
+
+$('snd').onclick=function(){send($('inp').value.trim());};
+$('inp').addEventListener('keydown',function(e){if(e.key==='Enter')send($('inp').value.trim());});
+
+(async function(){
+  var ok=await init();
+  if(ok){ // kick off the agent's welcome / ON_START
+    showTyping();
+    try{
+      var r=await fetch(CFG.base+'/chat/agent',{method:'POST',headers:{'X-SDK-Token':token,'Content-Type':'application/json'},body:JSON.stringify({projectId:CFG.projectId,message:'Hi'})});
+      var j=await r.json(); hideTyping();
+      if(r.ok){ sessionId=j.sessionId||j.session_id||(j.data&&j.data.sessionId)||sessionId; extractTurns(j).forEach(renderAssistant); }
+      else { renderAssistant({text:"Welcome to **VOX Cinemas**! 🎬 Tell me what you feel like watching, or share your number to personalize.",ac:{elements:[{id:'a1',type:'button',label:'✨ Recommend for me',value:'recommend a movie for me'},{id:'a2',type:'button',label:'🔍 Browse movies',value:'what movies are showing'}]}}); }
+    }catch(e){ hideTyping(); }
+  }
+})();
+</script>
+</body>
+</html>
